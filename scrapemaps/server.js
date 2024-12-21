@@ -25,22 +25,17 @@ app.post('/scrape', async (req, res) => {
     executablePath: puppeteer.executablePath(), 
   });
 
-  console.log("Navegador aberto.");
   const page = await browser.newPage();
-  console.log("Nova página criada.");
 
   try {
     await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
-    );
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36');
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
-    console.log("User agent e cabeçalhos extra configurados.");
   } catch (err) {
     console.error("Erro ao configurar cabeçalhos:", err);
   }
 
   const urlDePesquisa = "https://www.google.com.br/maps";
-  console.log("Iniciando o scraping...");
 
   try {
     await page.goto(urlDePesquisa);
@@ -55,18 +50,13 @@ app.post('/scrape', async (req, res) => {
   try {
     await page.type("#searchboxinput", `${segmento} em ${cidade}, ${estado}`);
     await page.click("#searchbox-searchbutton > span");
-    console.log("Pesquisa iniciada.");
   } catch (err) {
     console.error("Erro ao digitar ou clicar no botão de pesquisa:", err);
   }
-
   await page.setViewport({ width: 1200, height: 800, deviceScaleFactor: 1.5 });
-
-  console.log('Esperando pelo feed de resultados...');
 
   try {
     await page.waitForSelector('div[role="feed"]', { visible: true, timeout: 150000 });
-    console.log("Feed de resultados carregado.");
   } catch (error) {
     console.log("Erro ao esperar o feed de resultados:", error);
     return;
@@ -109,7 +99,6 @@ app.post('/scrape', async (req, res) => {
   // console.log('Scroll finalizado.');
 
   const links = await page.$$('div[role="feed"] > div:nth-child(odd) > [jsaction] a:not(.bm892c):not(.A1zNzb)');
-  console.log("Empresas encontradas:", links.length);
 
   const results = [];
   const seenTitles = new Set();
@@ -202,7 +191,7 @@ app.post('/scrape', async (req, res) => {
     await browser.close();
   }
 });
-//teste
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
