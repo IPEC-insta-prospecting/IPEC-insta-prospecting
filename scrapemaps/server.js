@@ -12,12 +12,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+let isScrapingCancelled = false; // Variável para sinalizar cancelamento
+
+// Rota para cancelar o scraping
+app.post('/cancel', (req, res) => {
+  isScrapingCancelled = true;
+  res.status(200).json({ message: 'Processo de scraping cancelado.' });
+});
+
 app.post('/scrape', async (req, res) => {
   const { segmento, cidade, estado } = req.body;
-
+  
   if (!segmento || !cidade || !estado) {
     return res.status(400).json({ error: 'Os campos segmento, cidade e estado são obrigatórios.' });
   }
+
+  isScrapingCancelled = false;
 
   const browser = await puppeteer.launch({
     headless: false,
@@ -40,11 +50,15 @@ app.post('/scrape', async (req, res) => {
   try {
     await page.goto(urlDePesquisa);
     await page.waitForSelector("#searchboxinput", { visible: true });
-    console.log("Página carregada com sucesso.");
   } catch (err) {
     console.error("Erro ao carregar a página ou encontrar o seletor:", err);
   }
 
+  if (isScrapingCancelled) {
+    await browser.close();
+    return res.status(200).json({ message: 'Scraping cancelado pelo usuário.' });
+  }
+  
   console.log(`Buscando por ${segmento} em ${cidade}, ${estado}`);
 
   try {
@@ -62,41 +76,40 @@ app.post('/scrape', async (req, res) => {
     return;
   }
 
-  // console.log('Iniciando o scroll para carregar todos os resultados...');
+  await page.evaluate(async (isCancelled) => {
+    const wrapper = document.querySelector('div[role="feed"]');
+    if (!wrapper) {
+      throw new Error("Feed de resultados não encontrado!");
+    }
+    
+    let previousScrollHeight = 0;
+    let attemptsWithoutChange = 0;
+  
+    while (attemptsWithoutChange < 5) {
+      if (isCancelled) {
+        throw new Error("Scraping cancelado pelo usuário");
+      }
+  
+      wrapper.scrollBy(0, wrapper.scrollHeight);
+      await new Promise(resolve => setTimeout(resolve, 6000));
+  
+      const currentScrollHeight = wrapper.scrollHeight;
+      if (currentScrollHeight === previousScrollHeight) {
+        attemptsWithoutChange++;
+      } else {
+        attemptsWithoutChange = 0;
+      }
+  
+      previousScrollHeight = currentScrollHeight;
+  
+      if (wrapper.scrollTop + wrapper.clientHeight >= currentScrollHeight) {
+        console.log("Rolagem completa!");
+        break;
+      }
+    }
+  }, isScrapingCancelled);  
 
-  // await page.evaluate(async () => {
-  //   const searchResultsSelector = 'div[role="feed"]';
-  //   const wrapper = document.querySelector(searchResultsSelector);
-
-  //   if (!wrapper) {
-  //     throw new Error("Feed de resultados não encontrado!");
-  //   }
-
-  //   let previousScrollHeight = 0;
-  //   let attemptsWithoutChange = 0;
-
-  //   while (attemptsWithoutChange < 5) {
-  //     wrapper.scrollBy(0, wrapper.scrollHeight);
-  //     await new Promise((resolve) => setTimeout(resolve, 6000));
-
-  //     const currentScrollHeight = wrapper.scrollHeight;
-
-  //     if (currentScrollHeight === previousScrollHeight) {
-  //       attemptsWithoutChange++;
-  //     } else {
-  //       attemptsWithoutChange = 0;
-  //     }
-
-  //     previousScrollHeight = currentScrollHeight;
-
-  //     if (wrapper.scrollTop + wrapper.clientHeight >= currentScrollHeight) {
-  //       console.log("Rolagem completa!");
-  //       break;
-  //     }
-  //   }
-  // });
-
-  // console.log('Scroll finalizado.');
+  console.log('Scroll finalizado.');
 
   const links = await page.$$('div[role="feed"] > div:nth-child(odd) > [jsaction] a:not(.bm892c):not(.A1zNzb)');
 
@@ -104,6 +117,12 @@ app.post('/scrape', async (req, res) => {
   const seenTitles = new Set();
 
   for (let i = 0; i < links.length; i++) {
+
+    if (isScrapingCancelled) {
+      await browser.close();
+      return res.status(200).json({ message: 'Scraping cancelado pelo usuário.' });
+    }
+
     const link = links[i];
     let capturouDados = false;
 
