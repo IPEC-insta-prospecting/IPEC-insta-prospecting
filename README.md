@@ -1,5 +1,5 @@
 1# Instalar as dependencias
-<code> - baixar arquivo zip
+<code> - baixar arquivo zip -
 
 2# Extrair os arquivos no local
 
