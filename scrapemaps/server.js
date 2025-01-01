@@ -12,9 +12,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-let isScrapingCancelled = false; // Variável para sinalizar cancelamento
+let isBrowserActive = false;
+let isScrapingCancelled = false; 
 
-// Rota para cancelar o scraping
 app.post('/cancel', (req, res) => {
   isScrapingCancelled = true;
   res.status(200).json({ message: 'Processo de scraping cancelado.' });
@@ -27,10 +27,11 @@ app.post('/scrape', async (req, res) => {
     return res.status(400).json({ error: 'Os campos segmento, cidade e estado são obrigatórios.' });
   }
 
+  isBrowserActive = true;
   isScrapingCancelled = false;
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     executablePath: puppeteer.executablePath(), 
   });
@@ -206,6 +207,7 @@ app.post('/scrape', async (req, res) => {
     console.error('Erro ao criar o arquivo CSV:', error);
     res.status(500).json({ error: 'Erro ao processar os resultados.' });
   } finally {
+    isBrowserActive = false;
     await browser.close();
   }
 });
