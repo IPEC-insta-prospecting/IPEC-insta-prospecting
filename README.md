@@ -1,3 +1,5 @@
+*windows 10 ou superior*
+
 1# Instalar as dependencias
 codigo e baixar arquivo zip 
 
