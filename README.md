@@ -7,7 +7,7 @@ Lembrando que o node deve estar baixado no computador ( https://nodejs.org/pt )
 2# Extrair os arquivos no local
 
 3# salve o local dos arquivos
--acesse o prompt e coloque cd local/do/arquivo/1 (scrapemaps)
+-acesse o prompt de comando e coloque cd local/do/arquivo/1 (scrapemaps)
 
 -rode (npm install) e (npm install puppeteer)
 
