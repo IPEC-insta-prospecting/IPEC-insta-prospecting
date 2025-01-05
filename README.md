@@ -1,3 +1,4 @@
+Lembrando que o node deve estar baixado no computador ( https://nodejs.org/pt )
 *windows 10 ou superior*
 
 1# Instalar as dependencias
